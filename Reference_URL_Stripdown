@@ -1,0 +1,73 @@
+<!---Function named EndRequestFunc for testing safely on CF Server--->
+<!---Rename function to OnRequestStart and place in Application.cfm file before running live--->
+<cffunction name="EndRequestFunc" access="public" returnType="string">
+<!---Variable declared and set to empty--->
+<cfset referer_path_and_file = "">
+<cfset referer_path = "">
+<cfset referer_file_name = "">
+<cfset script_path_and_file = "">
+<cfset script_path = "">
+<cfset script_file_name = "">
+
+<cfif cgi.HTTP_REFERER neq ''>
+  <!--- all of this will fail if there is no referer, for instance, if they bookmark the page --->
+  <!--- cgi.HTTP_REFERER may contain URL parameters, so let's strip those --->
+  <cfset referer_path_and_file = ListFirst(CGI.HTTP_REFERER, "?")>
+  <!--- now let's get just the path, stripping out the web server info --->
+  <cfset referer_path = ListDeleteAt(CGI.HTTP_REFERER, ListLen(CGI.HTTP_REFERER, "/"), "/")>
+  <cfset referer_path = ReplaceNoCase(referer_path, "https", "", "All")>
+  <cfset referer_path = ReplaceNoCase(referer_path, "http", "", "All")>
+  <cfset referer_path = ReplaceNoCase(referer_path, "://machine1.firsttitleservices.com", "", "All")>
+  <cfset referer_path = ReplaceNoCase(referer_path, "://www_dev.firsttitleservices.com", "", "All")>
+  <cfset referer_path = ReplaceNoCase(referer_path, "://www.firsttitleservices.com", "", "All")>
+  <cfset referer_path = referer_path & "/">
+  <cfset referer_path = ReplaceNoCase(referer_path, "/", "\", "All")>
+  <!--- now let's remove everything but the file name --->
+  <cfset referer_file_name = ListLast(referer_path_and_file, "/")>
+  <!--- and that leaves us with these variables set --->
+ <!--- referer_path_and_file = "#referer_path_and_file#"<br />
+  referer_path = "#referer_path#"<br />
+  referer_file_name = "#referer_file_name#"<br />
+  <br />--->
+</cfif>
+
+<!--- cgi.SCRIPT_NAME does not include URL parameters --->
+<cfset script_path_and_file = CGI.SCRIPT_NAME>
+<!--- now let's get just the path, stripping out the web server info --->
+<cfset script_path = GetDirectoryFromPath(GetCurrentTemplatePath())>
+<cfset script_path = ReplaceNoCase(script_path, "C:\inetpub\wwwroot\Clients\firsttitleservices.com\www_dev", "", "All")>
+<cfset script_path = ReplaceNoCase(script_path, "C:\inetpub\wwwroot\Clients\firsttitleservices.com\www", "", "All")>
+<!--- now let's remove everything but the file name --->
+<cfset script_file_name = ListLast(script_path_and_file, "/")>
+<!--- and that leaves us with these variables set--->
+<!---script_path_and_file = "#script_path_and_file#"<br />
+script_path = "#script_path#"<br />
+script_file_name = "#script_file_name#"<br />--->
+<!---<!---CFC Test Query--->
+   <cfquery name="qryTest" datasource="First_Title_Main_Dev" >
+INSERT INTO tblCFMPageRequest(pageName)
+     VALUES
+           ('MyPage.cfm')
+   </cfquery>--->
+
+
+   <!---Queries Table To Get Requested Record--->
+    <cfquery name="qryGetPageRecord" datasource="First_Title_Main_Dev" dbname="First_Title_Services_Dev">
+    SELECT referrerPage
+    FROM tblCFMPageRequest
+    WHERE referrerPage = '#referer_file_name#' AND scriptName = '#script_file_name#'
+    </cfquery>
+    <!---Conditional Check for record count equal to 0--->
+    <cfif qryGetPageRecord.recordCount eq 0>
+	<!---<cfset httpReferer = ListLast('http://www.my.com/index.cfm?uid=reece',"/")>
+    <cfset ListFirst(httpReferer,"?")>--->
+    <!---variable declared as scriptName and set equal to CGI.SCRIPT_NAME --->
+    <!---Value truncated to actual file name through function ListLast() --->
+	<!---<cfset scriptName  = ListLast('http://www.my.com/sales.cfm?uid=r433h', "/")>
+    <cfset ListFirst(scriptName,"?")>--->
+    <cfquery name="setNewRecord" datasource="First_Title_Main_Dev" dbname="First_Title_Services_Dev">
+    INSERT INTO tblCFMPageRequest (referrerPage, scriptName)
+    VALUES (<cfqueryparam cfsqltype="cf_sql_varchar" value="#referer_file_name#">, <cfqueryparam cfsqltype="cf_sql_varchar" value="#script_file_name#">)
+  </cfquery>
+    </cfif>
+</cffunction>
