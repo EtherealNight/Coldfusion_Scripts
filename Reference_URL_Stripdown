@@ -33,11 +33,12 @@
 </cfif>
 
 <!--- cgi.SCRIPT_NAME does not include URL parameters --->
-<cfset script_path_and_file = CGI.SCRIPT_NAME>
+<cfset script_path_and_file = ListFirst(CGI.SCRIPT_NAME, "\")>
 <!--- now let's get just the path, stripping out the web server info --->
 <cfset script_path = GetDirectoryFromPath(GetCurrentTemplatePath())>
 <cfset script_path = ReplaceNoCase(script_path, "C:\inetpub\wwwroot\Clients\firsttitleservices.com\www_dev", "", "All")>
 <cfset script_path = ReplaceNoCase(script_path, "C:\inetpub\wwwroot\Clients\firsttitleservices.com\www", "", "All")>
+
 <!--- now let's remove everything but the file name --->
 <cfset script_file_name = ListLast(script_path_and_file, "/")>
 <!--- and that leaves us with these variables set--->
@@ -59,6 +60,9 @@ INSERT INTO tblCFMPageRequest(pageName)
 <cfset reverseScriptPage = ReReplace(#currentScriptPage#, "/", "\","ALL")>
 <!---Set reverseScriptPage value as newly format command line directory structure--->
 <cfset newScriptPage = ListSetAt(#reverseScriptPage#, 1, "#reverseScriptPage#") >
+<cfset lastScriptPage = ListFirst(#newScriptPage#, "/") > <!---Added this 5/11/2015--->
+ <cfset  finalScriptPage = ListSetAt(#lastScriptPage#, 1, "#lastScriptPage#") > <!---Added this 5/11/2015--->
+<cfset finalScriptPath = ReplaceNoCase(#finalScriptPage#,"\","","2" )> <!---Added this 5/11/2015--->
 
 <!---<cfoutput>#CGI.CF_TEMPLATE_PATH#</cfoutput>--->
 
@@ -69,6 +73,7 @@ INSERT INTO tblCFMPageRequest(pageName)
 <!---currentHeader URL string has "/" replaced with "\" characters then set as variable reverseHeaderURL--->
 <cfset reverseHeaderURL = ReReplace(#currentHeader#, "/", "\","ALL")>
 <!---reverseHeaderURL is stripped of all known http type formattings and IP formattings--->
+<cfif cgi.HTTP_REFERER neq ''>
 <cfset reverseHeaderURL = ListDeleteAt(cgi.HTTP_REFERER, ListLen(cgi.HTTP_REFERER, "/"), "/")>
   <cfset reverseHeaderURL = ReplaceNoCase(reverseHeaderURL, "https", "", "All")>
   <cfset reverseHeaderURL = ReplaceNoCase(reverseHeaderURL, "http", "", "All")>
@@ -77,8 +82,40 @@ INSERT INTO tblCFMPageRequest(pageName)
   <cfset reverseHeaderURL = ReplaceNoCase(reverseHeaderURL, "://www.firsttitleservices.com", "", "All") >
   <cfset reverseHeaderURL = ReplaceNoCase(reverseHeaderURL, "://machine1.firsttitleservices.com", "", "All")>
   <cfset reverseHeaderURL = ReplaceNoCase(reverseHeaderURL, "://10.11.2.60/", "", "All")>
+  <cfset reverseHeaderURL = ReplaceNoCase(reverseHeaderURL, ":\\dev.firsttitleservices.com\", "", "All")> <!---Added this line 5/11/2015--->
   <!---The end result is then formatted to C:\\ command line format and stored in new variable newHeaderURL--->
-<cfset newHeaderURL = ListSetAt(#reverseHeaderURL#, 1, "#reverseHeaderURL#") >
+ <cfset newHeaderURL = ListSetAt(#reverseHeaderURL#, 1, "#reverseHeaderURL#") >
+<cfset finalHeaderURL = ReReplace(#newHeaderURL#, "/", "\","ALL")>
+</cfif>
+
+<!---This Block Acquires the Script File Path--->
+<cfif cgi.PATH_INFO neq ''>
+  <!--- all of this will fail if there is no referer, for instance, if they bookmark the page --->
+  <!--- cgi.HTTP_REFERER may contain URL parameters, so let's strip those --->
+  <cfset script_path_and_file = ListFirst(CGI.PATH_INFO, "?")>
+  <!--- now let's get just the path, stripping out the web server info --->
+  <cfset script_path = ListDeleteAt(CGI.PATH_INFO, ListLen(CGI.PATH_INFO, "/"), "/")>
+  <cfset script_path = ReplaceNoCase(script_path, "https", "", "All")>
+  <cfset script_path = ReplaceNoCase(script_path, "http", "", "All")>
+  <cfset script_path = ReplaceNoCase(script_path, "://machine1.firsttitleservices.com", "", "All")>
+  <cfset script_path = ReplaceNoCase(script_path, "://www_dev.firsttitleservices.com", "", "All")>
+  <cfset script_path = ReplaceNoCase(script_path, "://www.firsttitleservices.com", "", "All")>
+  <cfset script_path = ReplaceNoCase(script_path, "://10.11.2.60/", "", "All")>
+  <cfset script_path = script_path & "/">
+  <cfset script_path = ReplaceNoCase(script_path, "/", "\", "All")>
+  <!--- now let's remove everything but the file name --->
+  <cfset script_file_name = ListLast(script_path_and_file, "/")>
+  <!--- and that leaves us with these variables set --->
+ <!--- referer_path_and_file = "#referer_path_and_file#"<br />
+  referer_path = "#referer_path#"<br />
+  referer_file_name = "#referer_file_name#"<br />
+  <br />--->
+</cfif>
+
+<cfset script_path = GetDirectoryFromPath(GetCurrentTemplatePath())>
+<cfset script_path = ReplaceNoCase(script_path, "C:\inetpub\wwwroot\Clients\firsttitleservices.com\www_dev", "", "All")>
+<cfset script_path = ReplaceNoCase(script_path, "C:\inetpub\wwwroot\Clients\firsttitleservices.com\www", "", "All")>
+<cfset script_path = ReplaceNoCase(script_path, "C:\inetpub\wwwroot\", "", "All")>
 
    <!---Queries Table To Get Requested Record--->
     <cfquery name="qryGetPageRecord" datasource="First_Title_Main_Dev" dbname="First_Title_Services_Dev">
@@ -97,9 +134,9 @@ INSERT INTO tblCFMPageRequest(pageName)
     <cfquery name="setNewRecord" datasource="First_Title_Main_Dev" dbname="First_Title_Services_Dev">
     INSERT INTO tblCFMPageRequest (referrerPage, referrerPath, scriptName, scriptPath)
     VALUES (<cfqueryparam cfsqltype="cf_sql_varchar" value="#referer_file_name#">,
-    		<cfqueryparam cfsqltype="cf_sql_varchar" value="#newHeaderURL#">, 
+    		<cfqueryparam cfsqltype="cf_sql_varchar" value="#finalHeaderURL#">, 
             <cfqueryparam cfsqltype="cf_sql_varchar" value="#script_file_name#">, 
-            <cfqueryparam cfsqltype="cf_sql_varchar" value="#newScriptPage#">)
+            <cfqueryparam cfsqltype="cf_sql_varchar" value="#script_path#">)
   </cfquery>
     </cfif>
 </cffunction>
