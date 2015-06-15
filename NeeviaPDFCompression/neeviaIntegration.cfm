@@ -14,7 +14,7 @@
 <cfquery name="qryGetFilesJustUploaded" datasource="#request.dsn#">											<!--- Limit to filed with pdf file type endings --->
 SELECT fileupload
   FROM [First_Title_Services_Dev].[dbo].[upload_many]
-  WHERE filedate >= '#dateTimeStamp#' AND fileupload Like '% .pdf'
+  WHERE filedate >= '#dateTimeStamp#' AND fileupload Like '% .pdf'     <!---Use the filedate greater than or equal to today and the Like clause where it searchings for results with .pdf endings--->
 </cfquery>
 
 <!--- Next Set a loop function to run cfexecute--->
