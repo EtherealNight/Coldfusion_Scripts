@@ -1,0 +1,21 @@
+<!---Lets Move the File back to the server from the NAS--->
+
+<cffunction name="MoveCompressReturnFile" access="public" returntype="void" description="Moves file to temp folder, compresses it then returns it to its original location">
+<cfargument name="fileName" default="document1.pdf">
+
+<cffile action="move" 
+source="C:\inetpub\wwwroot\testingFolder\PDFCompression\pdf\#arguments.fileName#"
+destination="C:\inetpub\wwwroot\testingFolder\PDFCompression\bin" >
+
+<!--- Now lets compress it--->
+<cfexecute name="C:\Program Files (x86)\neeviaPDF.com\PDFcompress\cmdLine\CLcompr.exe"
+arguments="C:\inetpub\wwwroot\testingFolder\PDFCompression\bin\#arguments.fileName# C:\inetpub\wwwroot\testingFolder\PDFCompression\bin\#arguments.fileName# -co -ci jpg -cq 10 -gi jpg -gq 10 -mi jbig2 -mq 1"
+outputfile="C:\inetpub\wwwroot\testingFolder\PDFCompression\bin\output.txt"
+timeout="250">
+</cfexecute>
+
+<!---Now Lets Return the file back to its original folder--->
+<cffile action="move" 
+source="C:\inetpub\wwwroot\testingFolder\PDFCompression\bin\#arguments.fileName#"
+destination="C:\inetpub\wwwroot\testingFolder\PDFCompression\pdf" >
+</cffunction>
